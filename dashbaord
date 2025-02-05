@@ -1,0 +1,118 @@
+import React, { useEffect, useState } from "react";
+import { motion } from "framer-motion";
+import { Pie } from "react-chartjs-2";
+import "chart.js/auto";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+import { INVESTMENT_BASE_URL, USER_BASE_URL } from "@/constants/api";
+import { useWallet } from "@/contexts/Wallet";
+import { investmentsImages } from "@/public/images";
+import { toast } from "sonner";
+
+const Dashboard = () => {
+  const { walletAddress } = useWallet();
+  const [investments, setInvestments] = useState(0);
+  const [roi, setRoi] = useState(0);
+  const [referrals, setReferrals] = useState(0);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchAllData = async () => {
+      try {
+        setLoading(true);
+        const investmentsResponse = await fetch(
+          `${INVESTMENT_BASE_URL}/user/${walletAddress}/total`
+        );
+        if (!investmentsResponse.ok) throw new Error("Failed to fetch investments");
+        const investmentsData = await investmentsResponse.json();
+
+        const referralResponse = await fetch(
+          `${USER_BASE_URL}/wallet/${walletAddress}`
+        );
+        if (!referralResponse.ok) throw new Error("Failed to fetch referrals");
+        const referralData = await referralResponse.json();
+
+        const referrals = referralData.referral?.referrals || [];
+        const totalCommission = referrals.reduce(
+          (sum, ref) => sum + (ref.commission || 0),
+          0
+        );
+        const activeReferrals = referrals.filter(
+          (ref) => ref.status === "Pending"
+        ).length;
+
+        setInvestments(investmentsData.totalInvestments || 0);
+        setRoi(750); // Example ROI, replace with API data if available
+        setReferrals(activeReferrals);
+      } catch (err) {
+        toast.error(`Error: ${(err as Error).message}`);
+      } finally {
+        setLoading(false);
+      }
+    };
+    if (walletAddress) fetchAllData();
+  }, [walletAddress]);
+
+  const pieData = {
+    labels: ["USD", "GBP", "EUR", "Others"],
+    datasets: [
+      {
+        data: [62, 8, 26, 4],
+        backgroundColor: ["#00D1FF", "#343A40", "#707BFF", "#222"],
+        borderWidth: 2,
+      },
+    ],
+  };
+
+  return (
+    <div className="p-4 bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white min-h-screen">
+      <motion.div
+        className="grid grid-cols-1 md:grid-cols-3 gap-6"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.8 }}
+      >
+        {["Total Investments", "Current ROI", "Referral Earnings"].map(
+          (title, index) => (
+            <Card
+              key={index}
+              className="p-6 rounded-2xl shadow-2xl bg-white/10 backdrop-blur-xl hover:shadow-blue-500/50 transition duration-300"
+            >
+              <h3 className="text-lg font-semibold text-gray-300">{title}</h3>
+              <motion.p
+                className="text-4xl font-bold mt-2"
+                initial={{ scale: 0.9 }}
+                animate={{ scale: 1 }}
+                transition={{ duration: 0.4 }}
+              >
+                {index === 0 && `$${investments.toLocaleString()}`}
+                {index === 1 && `$${roi.toLocaleString()}`}
+                {index === 2 && `${referrals} Referrals`}
+              </motion.p>
+            </Card>
+          )
+        )}
+      </motion.div>
+      
+      <div className="mt-8 bg-white/10 p-6 rounded-2xl shadow-xl backdrop-blur-md hover:shadow-indigo-500/50 transition duration-300">
+        <h3 className="text-lg font-semibold text-gray-300">Currency Composition</h3>
+        <Pie data={pieData} />
+      </div>
+      
+      <motion.div
+        initial={{ opacity: 0, y: 30 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6 }}
+        className="mt-8 bg-white/10 p-6 rounded-2xl shadow-xl backdrop-blur-md hover:shadow-green-500/50 transition duration-300"
+      >
+        <h3 className="text-lg font-semibold text-gray-300">Referral Program</h3>
+        <p className="mt-2">Earn up to 10% commission on referral investments.</p>
+        <Button className="mt-4 bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded-lg">
+          Start Earning
+        </Button>
+      </motion.div>
+    </div>
+  );
+};
+
