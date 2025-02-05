@@ -2,9 +2,8 @@ import React, { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { Pie } from "react-chartjs-2";
 import "chart.js/auto";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
 import { INVESTMENT_BASE_URL, USER_BASE_URL } from "@/constants/api";
 import { useWallet } from "@/contexts/Wallet";
 import { investmentsImages } from "@/public/images";
@@ -43,7 +42,7 @@ const Dashboard = () => {
         ).length;
 
         setInvestments(investmentsData.totalInvestments || 0);
-        setRoi(750); // Example ROI, replace with API data if available
+        setRoi(investmentsData.currentRoi || 0);
         setReferrals(activeReferrals);
       } catch (err) {
         toast.error(`Error: ${(err as Error).message}`);
@@ -116,3 +115,4 @@ const Dashboard = () => {
   );
 };
 
+export default Dashboard;
